@@ -1,139 +1,204 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include "stack.h"
+
+#define MAX_OPERATOR_STACK_CAPACITY 50
+#define MAX_NODE_STACK_CAPACITY 50
+
+char *expression;
+int textPointer = 0;
+
 
 enum TokenType {
-    Plus,
-    Minus,
-    Star,
-    ParenOpen,
-    ParenClose,
-    Number,
+    Plus = 0,
+    Minus = 1,
+    ParenOpen = 2,
+    ParenClose = 3,
+    Star = 4,
+    Number = 5,
     EndOfText
 };
 
+
 struct Token {
-    enum TokenType tokenType;
+    enum TokenType type;
     int value;
 };
 
-
-int sourcePointer = 0;
-
-int parseIntValue(char *expression) {
-    char current = expression[sourcePointer];
-    int value = 0;
-    while (current >= '0' && current <= '9') {
-        value = value * 10;
-        value += current - '0';
-        current = expression[++sourcePointer];
-    }
-    return value;
-}
-
 int isDigit(char c) {
-    return (c >= '0' && c <= '9');
+    return c >= '0' && c <= '9';
 }
 
+int isOperatorToken(enum TokenType type) {
+    return !(type == Number || type == EndOfText);
+}
 
-struct Token getNextToken(char *expression) {
-    char current = expression[sourcePointer];
-    enum TokenType type;
-    struct Token t;
+char getValueFromEnum(enum TokenType type) {
+    char values[5] = {'+', '-', '(', ')', '*'};
+    return values[type];
+}
+
+struct Token getNextToken() {
+    char current = expression[textPointer++];
+    struct Token token;
+
     while (current != '\0') {
-        current = expression[sourcePointer++];
-
-
         if (current == '+') {
-            type = Plus;
-            t.tokenType = type;
-            return t;
+            token.type = Plus;
+            return token;
         }
 
         if (current == '-') {
-            char next = expression[sourcePointer + 1];
-
-            if (isDigit(next)) {
-                type = Number;
-                t.tokenType = type;
-                t.value = -1 * parseIntValue(expression);
-                return t;
-            }
-
-            type = Minus;
-            t.tokenType = type;
-            return t;
+            token.type = Minus;
+            return token;
         }
 
         if (current == '*') {
-            type = Star;
-            t.tokenType = type;
-            return t;
+            token.type = Star;
+            return token;
         }
 
         if (current == '(') {
-            type = ParenOpen;
-            t.tokenType = type;
-            return t;
+            token.type = ParenOpen;
+            return token;
         }
 
         if (current == ')') {
-            type = ParenClose;
-            t.tokenType = type;
-            return t;
+            token.type = ParenOpen;
+            return token;
+        }
+        if (isDigit(current)) {
+            int value = current - '0';
+            current = expression[textPointer];
+
+            while (isDigit(current)) {
+                value *= 10;
+                value += current - '0';
+
+                textPointer++;
+                current = expression[textPointer];
+            }
+            token.value = value;
+            token.type = Number;
+            return token;
+        }
+        if (current == ' ') {
+            current = expression[textPointer++];
         }
 
-        if (current >= '0' && current <= '9') {
-            type = Number;
-            t.tokenType = type;
-            t.value = parseIntValue(expression);
-            return t;
-        }
     }
-    type = EndOfText;
-    t.tokenType = type;
-    return t;
+    token.type = EndOfText;
+    return token;
 }
 
-
-struct node {
-    int value;
-    struct node *left;
-    struct node *right;
+enum ExpressionTreeNodeType {
+    Num,
+    Operator
 };
 
 
+struct ExpressionTreeNode {
+    int value;
+    enum ExpressionTreeNodeType type;
+    struct ExpressionTreeNode *left;
+    struct ExpressionTreeNode *right;
+};
 
-
-struct node *newNode(int data) {
-    struct node *node
-            = (struct node *) malloc(sizeof(struct node));
-
-    node->value = data;
-
+struct ExpressionTreeNode *createNode(int value) {
+    struct ExpressionTreeNode *node = (struct ExpressionTreeNode *) malloc(sizeof(struct ExpressionTreeNode));
+    node->value = value;
     node->left = NULL;
     node->right = NULL;
     return node;
 }
 
-struct node *parseNumericalExpression(struct Token token) {
-    struct node* root = newNode(1);
-
-    return root;
+void print_nodes_post(struct ExpressionTreeNode *node)
+{
+    if(node->type == Operator)
+    {
+        print_nodes_post(node->left);
+        print_nodes_post(node->right);
+        printf("%c ", node->value);
+    }
+    else{
+        printf("%d ", node->value);
+    }
 }
 
-int main(int argc, char *argv[]) {
 
-    printf("Arg count: %d\n", argc);
+int main(int argc, char **argv) {
+    char *program_name = argv[0];
 
-    char *expression = argv[1];
+    expression = argv[1];
+    // todo add reading to the buffer from stdin
 
-    int counter = 1;
-    char current = expression[0];
+    struct CharStack *operatorStack = createStack(MAX_OPERATOR_STACK_CAPACITY);
 
-    struct Token currentToken;
-    currentToken = getNextToken(expression);
+    struct Token currentToken = getNextToken();
 
-    printf("abc");
+    int priority[128] = {0};
 
+    priority['*'] = 2;
+    priority['+'] = priority['-'] = 1;
+    priority[')'] = priority['('] = 0;
+    struct ExpressionTreeNode *nodes[MAX_NODE_STACK_CAPACITY];
+    int nodeIndex = -1;
 
+    while (currentToken.type != EndOfText) {
+        if (currentToken.type == Number) {
+            nodeIndex++;
+            nodes[nodeIndex] = createNode(currentToken.value);
+            nodes[nodeIndex]->type = Num;
+            currentToken = getNextToken();
+            continue;
+        }
+
+        if (currentToken.type == ParenOpen) {
+            push(operatorStack, getValueFromEnum(ParenOpen));
+            currentToken = getNextToken();
+            continue;
+        }
+
+        if (currentToken.type == ParenClose) {
+            while (!isEmpty(operatorStack) && peek(operatorStack) != getValueFromEnum(ParenOpen)) {
+                char operator = pop(operatorStack);
+
+                struct ExpressionTreeNode *newNode = createNode((int) operator);
+                newNode->right = nodes[nodeIndex--];
+                newNode->left = nodes[nodeIndex--];
+                newNode->type = Operator;
+                nodes[++nodeIndex] = newNode;
+            }
+            pop(operatorStack); // pop '('
+            currentToken = getNextToken();
+            continue;
+        }
+
+        if (isOperatorToken(currentToken.type)) {
+            while (!isEmpty(operatorStack) && (peek(operatorStack) != getValueFromEnum(ParenOpen))&&
+                    (priority[peek(operatorStack)] >= priority[getValueFromEnum(currentToken.type)]))
+            {
+                struct ExpressionTreeNode *newNode = createNode((int) pop(operatorStack));
+                newNode->right = nodes[nodeIndex--];
+                newNode->left = nodes[nodeIndex--];
+                newNode->type = Operator;
+                nodes[++nodeIndex] = newNode;
+            }
+
+            push(operatorStack, getValueFromEnum(currentToken.type));
+            currentToken = getNextToken();
+            continue;
+        }
+    }
+
+    while(!isEmpty(operatorStack))
+    {
+        struct ExpressionTreeNode *newNode = createNode((int) pop(operatorStack));
+        newNode->right = nodes[nodeIndex--];
+        newNode->left = nodes[nodeIndex--];
+        newNode->type = Operator;
+        nodes[++nodeIndex] = newNode;
+    }
+
+    print_nodes_post(nodes[0]);
+    return 0;
 }
