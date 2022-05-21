@@ -1,6 +1,6 @@
-#include "stack.h"
+#include "char_stack.h"
 
-struct CharStack *createStack(unsigned capacity) {
+struct CharStack *createCharStack(unsigned capacity) {
     struct CharStack *stack = (struct CharStack *) malloc(sizeof(struct CharStack));
     stack->capacity = capacity;
     stack->topIndex = -1;
@@ -8,28 +8,28 @@ struct CharStack *createStack(unsigned capacity) {
     return stack;
 }
 
-int isFull(struct CharStack *stack) {
+int isCharStackFull(struct CharStack *stack) {
     return stack->topIndex == stack->capacity - 1;
 }
 
-int isEmpty(struct CharStack *stack) {
+int isCharStackEmpty(struct CharStack *stack) {
     return stack->topIndex == -1;
 }
 
-void push(struct CharStack *stack, char item) {
-    if (isFull(stack))
+void pushCharStack(struct CharStack *stack, char item) {
+    if (isCharStackFull(stack))
         return;
     stack->array[++stack->topIndex] = item;
 }
 
-char pop(struct CharStack *stack) {
-    if (isEmpty(stack))
+char popCharStack(struct CharStack *stack) {
+    if (isCharStackEmpty(stack))
         return -1;
     return stack->array[stack->topIndex--];
 }
 
-char peek(struct CharStack *stack) {
-    if (isEmpty(stack))
+char peekCharStack(struct CharStack *stack) {
+    if (isCharStackEmpty(stack))
         return -1;
     return stack->array[stack->topIndex];
 }

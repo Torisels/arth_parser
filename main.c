@@ -1,12 +1,16 @@
 #include <stdio.h>
-#include "stack.h"
+#include <string.h>
 
+#include "char_stack.h"
+#include "node_stack.h"
+#include "tree_printer.h"
+
+#define INITIAL_EXPRESSION_LEN 100
 #define MAX_OPERATOR_STACK_CAPACITY 50
 #define MAX_NODE_STACK_CAPACITY 50
 
-char *expression;
-int textPointer = 0;
-
+char expression[INITIAL_EXPRESSION_LEN]; // expression buffer
+int textPointer = 0; // expression pointer
 
 enum TokenType {
     Plus = 0,
@@ -17,7 +21,6 @@ enum TokenType {
     Number = 5,
     EndOfText
 };
-
 
 struct Token {
     enum TokenType type;
@@ -63,7 +66,7 @@ struct Token getNextToken() {
         }
 
         if (current == ')') {
-            token.type = ParenOpen;
+            token.type = ParenClose;
             return token;
         }
         if (isDigit(current)) {
@@ -90,18 +93,6 @@ struct Token getNextToken() {
     return token;
 }
 
-enum ExpressionTreeNodeType {
-    Num,
-    Operator
-};
-
-
-struct ExpressionTreeNode {
-    int value;
-    enum ExpressionTreeNodeType type;
-    struct ExpressionTreeNode *left;
-    struct ExpressionTreeNode *right;
-};
 
 struct ExpressionTreeNode *createNode(int value) {
     struct ExpressionTreeNode *node = (struct ExpressionTreeNode *) malloc(sizeof(struct ExpressionTreeNode));
@@ -111,95 +102,100 @@ struct ExpressionTreeNode *createNode(int value) {
     return node;
 }
 
-void print_nodes_post(struct ExpressionTreeNode *node)
-{
-    if(node->type == Operator)
-    {
+void consumeNodes(struct CharStack *operatorStack, struct NodeStack *nodeStack) {
+    char operator = popCharStack(operatorStack);
+    struct ExpressionTreeNode *newNode = createNode((int) operator);
+    newNode->right = popNodeStack(nodeStack);
+    newNode->left = popNodeStack(nodeStack);
+    newNode->type = Operator;
+    pushNodeStack(nodeStack, newNode);
+}
+
+void print_nodes_post(struct ExpressionTreeNode *node) {
+    if (node->type == Operator) {
         print_nodes_post(node->left);
         print_nodes_post(node->right);
         printf("%c ", node->value);
-    }
-    else{
+    } else {
         printf("%d ", node->value);
     }
 }
 
+int calculate_expression(struct ExpressionTreeNode *node) {
+    if (node->type == Operator) {
+        int left = calculate_expression(node->left);
+        int right = calculate_expression(node->right);
+        char operator = (char) node->value;
+        switch (operator) {
+            case '+':
+                return left + right;
+            case '-':
+                return left - right;
+            case '*':
+                return left * right;
+            default:
+                printf("\nNiewspierany operator: %c\n", operator);
+                exit(-999);
+        }
+    }
+    return node->value;
+}
+
 
 int main(int argc, char **argv) {
-    char *program_name = argv[0];
-
-    expression = argv[1];
-    // todo add reading to the buffer from stdin
-
-    struct CharStack *operatorStack = createStack(MAX_OPERATOR_STACK_CAPACITY);
-
-    struct Token currentToken = getNextToken();
-
+    if (argc < 2) {
+        printf("Wprowadz wyrazenie: ");
+        scanf("%s", expression);
+    } else {
+        strcpy(expression, argv[1]);
+        printf("Podane wyrazenie: %s\n", expression);
+    }
     int priority[128] = {0};
-
     priority['*'] = 2;
     priority['+'] = priority['-'] = 1;
     priority[')'] = priority['('] = 0;
-    struct ExpressionTreeNode *nodes[MAX_NODE_STACK_CAPACITY];
-    int nodeIndex = -1;
+
+    struct CharStack *operatorStack = createCharStack(MAX_OPERATOR_STACK_CAPACITY);
+    struct NodeStack *nodeStack = createNodeStack(MAX_NODE_STACK_CAPACITY);
+    struct Token currentToken = getNextToken();
 
     while (currentToken.type != EndOfText) {
         if (currentToken.type == Number) {
-            nodeIndex++;
-            nodes[nodeIndex] = createNode(currentToken.value);
-            nodes[nodeIndex]->type = Num;
+            struct ExpressionTreeNode *newNode = createNode(currentToken.value);
+            newNode->type = Num;
+            pushNodeStack(nodeStack, newNode);
+            currentToken = getNextToken();
+        } else if (currentToken.type == ParenOpen) {
+            pushCharStack(operatorStack, getValueFromEnum(ParenOpen));
             currentToken = getNextToken();
             continue;
-        }
-
-        if (currentToken.type == ParenOpen) {
-            push(operatorStack, getValueFromEnum(ParenOpen));
-            currentToken = getNextToken();
-            continue;
-        }
-
-        if (currentToken.type == ParenClose) {
-            while (!isEmpty(operatorStack) && peek(operatorStack) != getValueFromEnum(ParenOpen)) {
-                char operator = pop(operatorStack);
-
-                struct ExpressionTreeNode *newNode = createNode((int) operator);
-                newNode->right = nodes[nodeIndex--];
-                newNode->left = nodes[nodeIndex--];
-                newNode->type = Operator;
-                nodes[++nodeIndex] = newNode;
+        } else if (currentToken.type == ParenClose) {
+            while (!isCharStackEmpty(operatorStack) && peekCharStack(operatorStack) != getValueFromEnum(ParenOpen)) {
+                consumeNodes(operatorStack, nodeStack);
             }
-            pop(operatorStack); // pop '('
+            popCharStack(operatorStack); // pop '('
             currentToken = getNextToken();
             continue;
-        }
-
-        if (isOperatorToken(currentToken.type)) {
-            while (!isEmpty(operatorStack) && (peek(operatorStack) != getValueFromEnum(ParenOpen))&&
-                    (priority[peek(operatorStack)] >= priority[getValueFromEnum(currentToken.type)]))
-            {
-                struct ExpressionTreeNode *newNode = createNode((int) pop(operatorStack));
-                newNode->right = nodes[nodeIndex--];
-                newNode->left = nodes[nodeIndex--];
-                newNode->type = Operator;
-                nodes[++nodeIndex] = newNode;
+        } else if (isOperatorToken(currentToken.type)) {
+            while (!isCharStackEmpty(operatorStack) && (peekCharStack(operatorStack) != getValueFromEnum(ParenOpen)) &&
+                   (priority[peekCharStack(operatorStack)] >= priority[getValueFromEnum(currentToken.type)])) {
+                consumeNodes(operatorStack, nodeStack);
             }
 
-            push(operatorStack, getValueFromEnum(currentToken.type));
+            pushCharStack(operatorStack, getValueFromEnum(currentToken.type));
             currentToken = getNextToken();
-            continue;
         }
     }
 
-    while(!isEmpty(operatorStack))
-    {
-        struct ExpressionTreeNode *newNode = createNode((int) pop(operatorStack));
-        newNode->right = nodes[nodeIndex--];
-        newNode->left = nodes[nodeIndex--];
-        newNode->type = Operator;
-        nodes[++nodeIndex] = newNode;
+    while (!isCharStackEmpty(operatorStack)) {
+        consumeNodes(operatorStack, nodeStack);
     }
+    struct ExpressionTreeNode *rootNode = peekNodeStack(nodeStack);
 
-    print_nodes_post(nodes[0]);
+    printExpressionTree(rootNode);
+    printf("Wyrazenie w ONP: ");
+    print_nodes_post(rootNode);
+    int value = calculate_expression(rootNode);
+    printf("\nWartosc wyrazenia: %d\n", value);
     return 0;
 }
-
