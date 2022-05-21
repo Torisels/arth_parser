@@ -26,10 +26,11 @@ int maxDepth(struct ExpressionTreeNode *node) {
 
 int printTreeInternal(struct ExpressionTreeNode *tree, unsigned char **outputBuffer, int isRightSubtree, int offset,
                       int depth) {
-    char valueBuffer[20];
-    int valueWidth = 3;
 
     if (tree == NULL) return 0;
+
+    char valueBuffer[20];
+    int valueWidth = 3;
 
     if (tree->type == Operator) {
         sprintf(valueBuffer, " %c ", tree->value);
@@ -44,24 +45,28 @@ int printTreeInternal(struct ExpressionTreeNode *tree, unsigned char **outputBuf
         outputBuffer[2 * depth][offset + left + i] = valueBuffer[i];
     }
 
-    int horizontalIndex = 2 * depth - 1;
-    if (depth && !isRightSubtree) {
-
-        for (int i = 0; i < valueWidth + right; i++) {
-            outputBuffer[horizontalIndex][offset + left + valueWidth / 2 + i] = CHR_CODE_LINE_HORIZONTAL;
-        }
-
-        outputBuffer[horizontalIndex][offset + left + valueWidth / 2] = CHR_LINE_LEFT_DOWN;
-        outputBuffer[horizontalIndex][offset + left + valueWidth + right + valueWidth / 2] = CHR_JUNCTION_UP;
-    } else if (depth && isRightSubtree) {
-        for (int i = 0; i < left + valueWidth; i++) {
-            outputBuffer[horizontalIndex][offset - valueWidth / 2 + i] = CHR_CODE_LINE_HORIZONTAL;
-        }
-
-        outputBuffer[horizontalIndex][offset + left + valueWidth / 2] = CHR_LINE_RIGHT_DOWN;
-        outputBuffer[horizontalIndex][offset - valueWidth / 2 - 1] = CHR_JUNCTION_UP;
+    if (depth == 0) {
+        return left + valueWidth + right;
     }
 
+    int horizontalLineIndex = 2 * depth - 1;
+
+    if (!isRightSubtree) {
+
+        for (int i = 0; i < valueWidth + right; i++) {
+            outputBuffer[horizontalLineIndex][offset + left + valueWidth / 2 + i] = CHR_CODE_LINE_HORIZONTAL;
+        }
+
+        outputBuffer[horizontalLineIndex][offset + left + valueWidth / 2] = CHR_LINE_LEFT_DOWN;
+        outputBuffer[horizontalLineIndex][offset + left + valueWidth + right + valueWidth / 2] = CHR_JUNCTION_UP;
+    } else {
+        for (int i = 0; i < left + valueWidth; i++) {
+            outputBuffer[horizontalLineIndex][offset - valueWidth / 2 + i] = CHR_CODE_LINE_HORIZONTAL;
+        }
+
+        outputBuffer[horizontalLineIndex][offset + left + valueWidth / 2] = CHR_LINE_RIGHT_DOWN;
+        outputBuffer[horizontalLineIndex][offset - valueWidth / 2 - 1] = CHR_JUNCTION_UP;
+    }
     return left + valueWidth + right;
 }
 
@@ -85,5 +90,4 @@ void printExpressionTree(struct ExpressionTreeNode *tree) {
         printf("%s\n", outputBuffer[i]);
     printf("\n");
 }
-
 #endif //PARSER_TREE_PRINTER_H
