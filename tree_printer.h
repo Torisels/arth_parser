@@ -89,5 +89,11 @@ void printExpressionTree(struct ExpressionTreeNode *tree) {
     for (i = 0; i < height; i++)
         printf("%s\n", outputBuffer[i]);
     printf("\n");
+
+    for (i = 0; i < height; ++i) {
+        free(outputBuffer[i]);
+    }
+
+    free(outputBuffer);
 }
 #endif //PARSER_TREE_PRINTER_H

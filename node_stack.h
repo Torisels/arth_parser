@@ -22,4 +22,6 @@ struct ExpressionTreeNode *popNodeStack(struct NodeStack *stack);
 
 struct ExpressionTreeNode *peekNodeStack(struct NodeStack *stack);
 
+void freeNodeStack(struct NodeStack *stack);
+
 #endif //PARSER_NODE_STACK_H

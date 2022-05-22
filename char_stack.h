@@ -22,5 +22,6 @@ char popCharStack(struct CharStack *stack);
 
 char peekCharStack(struct CharStack *stack);
 
+void freeCharStack(struct CharStack *stack);
 #endif //PARSER_CHAR_STACK_H
 

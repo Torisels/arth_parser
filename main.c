@@ -94,14 +94,6 @@ struct Token getNextToken() {
 }
 
 
-struct ExpressionTreeNode *createNode(int value) {
-    struct ExpressionTreeNode *node = (struct ExpressionTreeNode *) malloc(sizeof(struct ExpressionTreeNode));
-    node->value = value;
-    node->left = NULL;
-    node->right = NULL;
-    return node;
-}
-
 void consumeNodes(struct CharStack *operatorStack, struct NodeStack *nodeStack) {
     char operator = popCharStack(operatorStack);
     struct ExpressionTreeNode *newNode = createNode((int) operator);
@@ -192,10 +184,14 @@ int main(int argc, char **argv) {
     }
     struct ExpressionTreeNode *rootNode = peekNodeStack(nodeStack);
 
+    freeCharStack(operatorStack);
+    freeNodeStack(nodeStack);
+
     printExpressionTree(rootNode);
     printf("Wyrazenie w ONP: ");
     print_nodes_post(rootNode);
     int value = calculate_expression(rootNode);
+    freeExpressionTree(rootNode);
     printf("\nWartosc wyrazenia: %d\n", value);
     return 0;
 }

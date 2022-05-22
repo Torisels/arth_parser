@@ -16,20 +16,25 @@ int isNodeStackEmpty(struct NodeStack *stack) {
     return stack->topIndex == -1;
 }
 
-void pushNodeStack(struct NodeStack *stack, struct ExpressionTreeNode * item) {
+void pushNodeStack(struct NodeStack *stack, struct ExpressionTreeNode *item) {
     if (isNodeStackFull(stack))
         return;
     stack->array[++stack->topIndex] = item;
 }
 
-struct ExpressionTreeNode* popNodeStack(struct NodeStack *stack) {
+struct ExpressionTreeNode *popNodeStack(struct NodeStack *stack) {
     if (isNodeStackEmpty(stack))
         return NULL;
     return stack->array[stack->topIndex--];
 }
 
-struct ExpressionTreeNode* peekNodeStack(struct NodeStack *stack) {
+struct ExpressionTreeNode *peekNodeStack(struct NodeStack *stack) {
     if (isNodeStackEmpty(stack))
         return NULL;
     return stack->array[stack->topIndex];
+}
+
+void freeNodeStack(struct NodeStack *stack) {
+    free(stack->array);
+    free(stack);
 }

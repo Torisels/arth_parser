@@ -16,4 +16,9 @@ struct ExpressionTreeNode {
     struct ExpressionTreeNode *right;
 };
 
+
+void freeExpressionTree(struct ExpressionTreeNode *node);
+
+struct ExpressionTreeNode *createNode(int value);
+
 #endif //PARSER_EXPRESSION_TREE_H

@@ -33,3 +33,8 @@ char peekCharStack(struct CharStack *stack) {
         return -1;
     return stack->array[stack->topIndex];
 }
+
+void freeCharStack(struct CharStack *stack) {
+    free(stack->array);
+    free(stack);
+}
